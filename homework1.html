@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f2e7cf">
+<title>卷壹 · 四种 Agent 使用手记｜课业墨存</title>
+<meta name="description" content="TRAE、Claude、Codex、WorkBuddy 四款 AI Agent 的真实使用记录：桌面游戏改造、四款对比演示文稿、邮箱整理成表。">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* ---------- 卷壹专用 ---------- */
+.head{padding:60px 0 30px}
+.head-in{display:grid;grid-template-columns:1fr 300px;gap:44px;align-items:end}
+.head h1{
+  font-family:var(--kai);font-weight:400;margin:20px 0 0;
+  font-size:clamp(40px,5.6vw,74px);line-height:1.16;letter-spacing:.06em;
+}
+.head h1 .c{color:var(--cinnabar)}
+.head .lede{margin:20px 0 0;max-width:34em;color:var(--ink-2);line-height:2.05}
+.head .strip{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);margin-top:30px;max-width:520px;
+}
+.head .strip div{background:#faf3e2;padding:14px 12px;text-align:center}
+.head .strip b{display:block;font-family:var(--kai);font-size:26px;color:var(--cinnabar);line-height:1.2}
+.head .strip span{font-family:var(--hei);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+
+.colophon{border-left:1px solid var(--line);padding-left:22px;line-height:2.1}
+.colophon .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--ink-4);display:block}
+.colophon p{margin:2px 0 14px;font-size:13.6px;color:var(--ink-2)}
+
+/* 题记 */
+.question{border:1px solid var(--line);background:linear-gradient(150deg,#fbf5e7,#f1e5cc);padding:36px 40px;position:relative}
+.question::before{content:"題記";position:absolute;top:-11px;left:34px;background:#f5ead4;padding:0 10px;font-family:var(--kai);font-size:13px;letter-spacing:.3em;color:var(--cinnabar)}
+.question p{margin:0;font-family:var(--kaiti);font-size:clamp(18px,2vw,22px);line-height:2.1;letter-spacing:.03em;color:#2a251d}
+.question p em{font-style:normal;color:var(--cinnabar);border-bottom:1px solid #c8907f}
+
+/* 工具卡 */
+.tool{padding:28px 26px 26px;display:flex;flex-direction:column;gap:10px;position:relative;transition:.35s}
+.tool:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift)}
+.tool .no{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--ink-4)}
+.tool h3{margin:2px 0 0;font-family:var(--song);font-weight:600;font-size:26px;letter-spacing:.02em}
+.tool .role{font-family:var(--hei);font-size:11.5px;letter-spacing:.16em;color:var(--cinnabar)}
+.tool p{margin:4px 0 0;font-size:14px;line-height:1.92;color:var(--ink-2)}
+
+/* 实验条 */
+.exp{display:grid;grid-template-columns:96px 1fr;gap:26px;padding:30px 0;border-top:1px solid var(--line-soft)}
+.exp:first-of-type{border-top:0}
+.exp .idx{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ink-4);padding-top:8px}
+.exp .idx b{display:block;font-family:var(--kai);font-size:34px;font-weight:400;color:var(--cinnabar);letter-spacing:0;margin-top:2px}
+.exp h3{font-family:var(--kai);font-weight:400;font-size:clamp(23px,2.4vw,29px);margin:0 0 10px;line-height:1.4;letter-spacing:.04em}
+.exp p{margin:0;color:var(--ink-2);font-size:15px;line-height:1.98;max-width:46em}
+.exp .kv{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.exp .kv span{font-family:var(--hei);font-size:11px;letter-spacing:.1em;color:var(--ink-3);border:1px solid var(--line);padding:2px 9px;background:#fffaef66}
+
+/* 判断卡 */
+.verdict{padding:26px 24px;border-left:2px solid var(--cinnabar)}
+.verdict .mark{font-family:var(--kai);font-size:22px;color:var(--cinnabar);letter-spacing:.1em}
+.verdict h4{margin:10px 0 8px;font-family:var(--song);font-size:17px;font-weight:600;line-height:1.5}
+.verdict p{margin:0;font-size:13.8px;line-height:1.9;color:var(--ink-3)}
+
+/* 图版 */
+.plates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.plate-card{border:1px solid var(--line);background:#fbf5e7;padding:12px 12px 0;cursor:zoom-in;transition:.35s;position:relative}
+.plate-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift)}
+.plate-card img{aspect-ratio:16/10;object-fit:cover;object-position:top left;filter:saturate(.94) contrast(1.01)}
+.plate-card .cap{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:11px 2px 13px}
+.plate-card .cap b{font-family:var(--song);font-size:13.5px;font-weight:600}
+.plate-card .cap span{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--ink-4)}
+
+/* 灯箱 */
+.lb{position:fixed;inset:0;z-index:200;background:#1b1710ee;display:none;place-items:center;padding:4vw;backdrop-filter:blur(3px)}
+.lb.on{display:grid}
+.lb img{max-width:100%;max-height:86vh;box-shadow:0 40px 90px #000000aa;border:1px solid #ffffff22}
+.lb .close{position:absolute;top:22px;right:28px;color:#f3e6c8;font-family:var(--kai);font-size:26px;letter-spacing:.2em;cursor:pointer}
+
+@media(max-width:900px){
+  .head-in{grid-template-columns:1fr;gap:26px}
+  .colophon{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:16px}
+  .plates{grid-template-columns:1fr}
+  .exp{grid-template-columns:1fr;gap:10px}
+  .exp .idx{display:flex;align-items:center;gap:10px;padding:0}
+  .exp .idx b{font-size:24px;margin:0}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <a class="brand" href="index.html">
+        <span class="seal-mark">徐</span>
+        <span class="brand-txt"><b>课业墨存</b><span>ARTIFICIAL INTELLIGENCE · 2026</span></span>
+      </a>
+      <nav class="nav">
+        <a href="index.html"><span class="num">〇</span>首页</a>
+        <a href="homework1.html" class="on"><span class="num">壹</span>作业一</a>
+        <a href="homework2.html"><span class="num">贰</span>作业二</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="head wrap">
+    <div class="head-in">
+      <div>
+        <span class="eyebrow">卷 壹 · 网站展示 Agent 使用</span>
+        <h1>把想法交给<br><span class="c">另一个工作台</span></h1>
+        <p class="lede">
+          从写代码、做资料研究，到整理邮件与制作演示文稿——四种工具，四种节奏，一份仍在生长的个人工作流地图。
+        </p>
+        <div class="strip">
+          <div><b>04</b><span>种 AGENT</span></div>
+          <div><b>03</b><span>类真实任务</span></div>
+          <div><b>01</b><span>份持续记录</span></div>
+        </div>
+      </div>
+      <div class="colophon">
+        <span class="k">COLOPHON</span>
+        <p>徐子祺 · 2662404047<br>人工智能 2 班</p>
+        <span class="k">DATE</span>
+        <p>2026 年 9 月 — 11 月</p>
+        <span class="k">TOOLS</span>
+        <p>TRAE / Claude Desktop<br>Codex / WorkBuddy</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap" style="padding:24px 0 0">
+    <div class="question reveal">
+      <p>
+        AI Agent 不只是「会回答」。当它开始读文件、跑流程、交付结果，我的工作方式会发生什么变化？<br>
+        这份记录从实际任务出发，重点不是<em>排出冠军</em>，而是看清每种工具适合站在哪个位置。
+      </p>
+    </div>
+  </div>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- 01 -->
+  <section class="wrap">
+    <div class="chapter">
+      <span class="seal-no">壹</span>
+      <div>
+        <h2>四种工具，四个入口</h2>
+        <p class="sub">它们并不处在完全相同的赛道，把产品形态与任务场景放在一起看，选择才有意义。</p>
+      </div>
+    </div>
+    <div class="grid4">
+      <article class="tool sheet reveal">
+        <span class="no">NO. 01</span>
+        <h3>TRAE</h3>
+        <span class="role">AI 编程工作台</span>
+        <p>以编程与 IDE 工作流为入口。适合把代码、项目文件与 AI 辅助开发放在同一处探索。</p>
+      </article>
+      <article class="tool sheet reveal">
+        <span class="no">NO. 02</span>
+        <h3>Claude</h3>
+        <span class="role">桌面协作与长任务</span>
+        <p>使用 Claude Desktop（Cowork），并接入 DeepSeek Flash；体验围绕资料整理与多步骤任务展开。</p>
+      </article>
+      <article class="tool sheet reveal">
+        <span class="no">NO. 03</span>
+        <h3>Codex</h3>
+        <span class="role">代码与桌面任务</span>
+        <p>从桌面小游戏改造开始，关注它如何理解现有项目、提出改进，并把结果真正落实到文件。</p>
+      </article>
+      <article class="tool sheet reveal">
+        <span class="no">NO. 04</span>
+        <h3>WorkBuddy</h3>
+        <span class="role">办公自动化与 Agent</span>
+        <p>把邮箱里的信息分类整理，再汇总成 Excel，观察 Agent 在办公流程中的执行方式。</p>
+      </article>
+    </div>
+    <p class="note reveal" style="margin-top:24px">阅读方式：按任务理解工具，比按名字给工具排位更有用。<span class="mono" style="margin-left:10px">对比材料制作于 2026.09.28</span></p>
+  </section>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- 02 -->
+  <section class="wrap">
+    <div class="chapter">
+      <span class="seal-no">贰</span>
+      <div>
+        <h2>从一句需求，到看得见的结果</h2>
+        <p class="sub">每次尝试都从一个具体目标开始。过程里的选择、校对与交付，才是使用体验的一部分。</p>
+      </div>
+    </div>
+
+    <div class="exp reveal">
+      <div class="idx">EXP.<b>01</b></div>
+      <div>
+        <h3>让植物大战僵尸更好玩一点</h3>
+        <p>给已有的桌面游戏增加可玩性与操作反馈：先检查现有机制，再着手调整植物与僵尸的种类、关卡节奏，以及暂停与重开体验。改动落在真实文件上，跑起来才算完成。</p>
+        <div class="kv"><span>Codex</span><span>代码改造</span><span>交互体验</span></div>
+      </div>
+    </div>
+
+    <div class="exp reveal">
+      <div class="idx">EXP.<b>02</b></div>
+      <div>
+        <h3>把四款 Agent 放进同一张对照图</h3>
+        <p>围绕 TRAE、Claude、Codex、WorkBuddy 梳理产品定位、功能矩阵、任务体验与费用口径，再组织成便于阅读和编辑的演示文稿。比较先说清方法，再谈各自适用场景。</p>
+        <div class="kv"><span>TRAE</span><span>Claude</span><span>Codex</span><span>WorkBuddy</span><span>PPT</span></div>
+      </div>
+    </div>
+
+    <div class="exp reveal">
+      <div class="idx">EXP.<b>03</b></div>
+      <div>
+        <h3>把邮箱收件箱变成一份分类表</h3>
+        <p>将 14 封邮件按类型整理，生成 Excel 汇总表并保存到桌面。这次体验让我留意到：自动化的价值不只在于完成动作，也在于最后的产物能否直接接上日常工作。</p>
+        <div class="kv"><span>WorkBuddy</span><span>邮箱整理</span><span>Excel</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- 03 -->
+  <section class="wrap">
+    <div class="chapter">
+      <span class="seal-no">叁</span>
+      <div>
+        <h2>体验之后，四条判断</h2>
+        <p class="sub">不是参数榜单，是从实际使用中提炼出来的选择线索。</p>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="verdict reveal">
+        <span class="mark">其一</span>
+        <h4>工作入口决定使用手感</h4>
+        <p>写代码、研究资料、处理邮件，背后的操作环境不同。先找到任务发生的位置，再挑能自然接入的工具。</p>
+      </div>
+      <div class="verdict reveal">
+        <span class="mark">其二</span>
+        <h4>能否接住多步骤，影响真实效率</h4>
+        <p>从理解需求、拆解步骤到生成文件，Agent 是否能稳定推进，比单轮回答是否漂亮更能说明问题。</p>
+      </div>
+      <div class="verdict reveal">
+        <span class="mark">其三</span>
+        <h4>费用需要统一口径</h4>
+        <p>模型、API、缓存与任务用量都会改变估算。对比时应标出日期与使用条件，避免把一次估算当成通用价格。</p>
+      </div>
+      <div class="verdict reveal">
+        <span class="mark">其四</span>
+        <h4>结果必须可检查</h4>
+        <p>无论是代码改动还是整理好的表格，实际打开、核对并确认符合目标，是完成工作不可省略的一步。</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- 04 -->
+  <section class="wrap">
+    <div class="chapter">
+      <span class="seal-no">肆</span>
+      <div>
+        <h2>工作台现场</h2>
+        <p class="sub">来自真实使用过程的桌面记录。点击任一画面，可查看原图。</p>
+      </div>
+    </div>
+    <div class="plates">
+      <figure class="plate-card reveal" data-full="assets/agent-comparison.png">
+        <img src="assets/agent-comparison.png" alt="四款 Agent 对比演示文稿截图" loading="lazy">
+        <figcaption class="cap"><b>四款 Agent 对比</b><span>资料研究 · 演示文稿</span></figcaption>
+      </figure>
+      <figure class="plate-card reveal" data-full="assets/agent-research.png">
+        <img src="assets/agent-research.png" alt="研究与编排多步骤任务截图" loading="lazy">
+        <figcaption class="cap"><b>研究与编排</b><span>多步骤任务 · Agent</span></figcaption>
+      </figure>
+      <figure class="plate-card reveal" data-full="assets/agent-codex-game.png">
+        <img src="assets/agent-codex-game.png" alt="Codex 改造桌面游戏截图" loading="lazy">
+        <figcaption class="cap"><b>从游戏开始</b><span>代码改造 · Codex</span></figcaption>
+      </figure>
+      <figure class="plate-card reveal" data-full="assets/agent-workbuddy.png">
+        <img src="assets/agent-workbuddy.png" alt="WorkBuddy 整理邮箱生成表格截图" loading="lazy">
+        <figcaption class="cap"><b>收件箱 → 汇总表</b><span>办公自动化 · WorkBuddy</span></figcaption>
+      </figure>
+    </div>
+    <p class="tiny" style="margin-top:16px">＊ 截图为个人使用记录，图片内容保留原貌。</p>
+  </section>
+
+  <!-- 结语 -->
+  <section class="wrap" style="margin-top:64px">
+    <div class="question reveal" style="text-align:center">
+      <p style="font-size:clamp(20px,2.4vw,26px);line-height:1.95">
+        Agent 不是替你工作，<em>而是改变工作怎么开始</em>。
+      </p>
+      <p class="tiny" style="margin-top:14px;font-family:var(--song);font-size:14px;color:var(--ink-3)">
+        这份手记记录的是一次起点。随着工具更新、任务变复杂，适合自己的工作流也会继续变化。
+      </p>
+    </div>
+
+    <div class="switcher">
+      <a href="homework2.html">
+        <span class="k">NEXT · 卷贰</span>
+        <span class="t">以墨训智：MLP 参透异或</span>
+        <span class="arw">→ 含可交互训练台</span>
+      </a>
+      <a href="index.html">
+        <span class="k">INDEX</span>
+        <span class="t">回到首页</span>
+        <span class="arw">↑ 两卷索引</span>
+      </a>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <div><div class="sig">卷壹 · 四种 Agent 使用手记</div><small>AGENT FIELD NOTES · 2026.09</small></div>
+      <div class="center muted tiny" style="max-width:32em">图片截自个人桌面，未做内容改动。</div>
+      <div class="mono">徐子祺 / 2662404047</div>
+    </div>
+  </footer>
+</div>
+
+<div class="lb" id="lb">
+  <span class="close" id="lbClose">关闭 ✕</span>
+  <img id="lbImg" alt="放大查看截图">
+</div>
+
+<script>
+const lb = document.getElementById('lb'), lbImg = document.getElementById('lbImg');
+document.querySelectorAll('.plate-card').forEach(c => {
+  c.addEventListener('click', () => { lbImg.src = c.dataset.full; lb.classList.add('on'); });
+});
+lb.addEventListener('click', () => lb.classList.remove('on'));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') lb.classList.remove('on');
+  if (e.target.matches('input,textarea')) return;
+  if (e.key === 'ArrowRight') location.href = 'homework2.html';
+  if (e.key === 'ArrowLeft')  location.href = 'index.html';
+});
+const io = new IntersectionObserver(es => es.forEach(en => {
+  if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+}), { threshold: .1 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

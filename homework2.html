@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f2e7cf">
+<title>卷贰 · 以墨训智：九参数参透异或｜课业墨存</title>
+<meta name="description" content="用 PyTorch 与 TensorFlow 实现 2—2—1 多层感知机解决异或问题，并在网页里实时观看参数学习与决策边界的变化。">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* ================= 卷贰专用 ================= */
+.head{padding:56px 0 26px}
+.head h1{
+  font-family:var(--kai);font-weight:400;margin:18px 0 0;
+  font-size:clamp(42px,6vw,80px);line-height:1.12;letter-spacing:.06em;
+}
+.head h1 .c{color:var(--cinnabar)}
+.head .lede{margin:20px 0 0;max-width:36em;color:var(--ink-2);line-height:2.05}
+.facts{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:30px}
+.facts div{background:#faf3e2;padding:16px 14px}
+.facts b{display:block;font-family:var(--kai);font-size:26px;color:var(--cinnabar);line-height:1.2}
+.facts span{font-family:var(--hei);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+
+.task{border:1px solid var(--line);background:linear-gradient(150deg,#fbf5e7,#f1e5cc);padding:30px 34px;position:relative;margin-top:34px}
+.task::before{content:"課題";position:absolute;top:-11px;left:32px;background:#f5ead4;padding:0 10px;font-family:var(--kai);font-size:13px;letter-spacing:.3em;color:var(--cinnabar)}
+.task p{margin:0 0 8px;font-family:var(--kaiti);font-size:17.5px;line-height:2;color:#2a251d}
+.task p:last-child{margin:0}
+.task .src{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--ink-4);margin-top:12px}
+
+/* 三个境界 */
+.realm{display:flex;gap:10px;flex-wrap:wrap;margin:34px 0 0}
+.realm a{
+  flex:1 1 200px;border:1px solid var(--line);background:#fbf5e7;padding:16px 18px;
+  display:flex;flex-direction:column;gap:5px;transition:.3s;
+}
+.realm a:hover{background:#fff8e9;transform:translateY(-2px);box-shadow:var(--shadow-paper)}
+.realm .n{font-family:var(--kai);font-size:12px;letter-spacing:.3em;color:var(--cinnabar)}
+.realm .t{font-family:var(--kai);font-size:19px;letter-spacing:.06em}
+.realm .d{font-family:var(--hei);font-size:11.5px;color:var(--ink-3);letter-spacing:.04em}
+
+.sect{padding-top:8px}
+.sect + .sect{margin-top:8px}
+.body-txt{color:var(--ink-2);font-size:16px;line-height:2.05;max-width:44em}
+.body-txt em{font-style:normal;color:var(--cinnabar);border-bottom:1px dotted #b57363}
+
+/* 实验台通用 */
+.lab{border:1px solid var(--line);background:linear-gradient(165deg,#fdf7e9,#f5ead3);box-shadow:var(--shadow-paper);position:relative}
+.lab-top{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:14px 20px;border-bottom:1px solid var(--line);background:#fffaee88;
+}
+.lab-top .ttl{font-family:var(--kai);font-size:19px;letter-spacing:.1em;color:var(--ink)}
+.lab-top .ttl small{font-family:var(--hei);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3);margin-left:8px}
+.chips{display:flex;gap:18px;flex-wrap:wrap}
+.chip{display:flex;flex-direction:column;line-height:1.3}
+.chip span{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--ink-4);text-transform:uppercase}
+.chip b{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--ink);letter-spacing:.02em}
+.chip b.ok{color:var(--jade)}
+.chip b.bad{color:var(--cinnabar)}
+
+.lab-body{padding:18px 20px 22px}
+.ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.btn-sm{
+  padding:7px 14px;border:1px solid var(--line);background:#fffdf6;border-radius:2px;
+  font-family:var(--song);font-size:13px;letter-spacing:.1em;transition:.2s;
+}
+.btn-sm:hover{border-color:var(--ink);background:#fff}
+.btn-sm.primary{background:var(--seal);border-color:var(--seal);color:#fdf2df}
+.btn-sm.primary:hover{background:#8c1f16}
+.btn-sm:disabled{opacity:.4;cursor:not-allowed}
+.sl{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--ink-3)}
+.sl input[type=range]{width:112px;accent-color:var(--cinnabar);height:3px}
+.sl b{font-family:var(--mono);color:var(--ink);font-weight:500;min-width:42px;letter-spacing:0}
+
+.grid-lab{display:grid;grid-template-columns:1.02fr 1fr;gap:18px}
+.cell{border:1px solid var(--line-soft);background:#fffdf6;padding:12px 14px 10px;position:relative}
+.cell h4{
+  margin:0 0 8px;font-family:var(--hei);font-size:11px;font-weight:500;
+  letter-spacing:.16em;color:var(--ink-3);display:flex;justify-content:space-between;gap:8px;
+}
+.cell h4 em{font-style:normal;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--ink-4)}
+.cell canvas{display:block;width:100%;height:auto}
+
+/* 输出表 */
+.prow{display:grid;grid-template-columns:74px 1fr 62px 44px;align-items:center;gap:10px;padding:5px 0;border-bottom:1px dotted #e3d6ba;font-family:var(--mono);font-size:11.5px}
+.prow:last-child{border-bottom:0}
+.prow .q{color:var(--ink-2);letter-spacing:.06em}
+.prow .bar{height:9px;background:#efe3c9;position:relative;overflow:hidden;border-radius:1px}
+.prow .bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#b98a6c,#9c3a2c);transition:width .18s}
+.prow .v{text-align:right;color:var(--ink)}
+.prow .ok{text-align:right;color:var(--jade);font-size:10px;letter-spacing:.1em}
+.prow .no{text-align:right;color:var(--cinnabar);font-size:10px;letter-spacing:.1em}
+
+/* 参数字表 */
+.params{display:grid;grid-template-columns:1fr;gap:0;margin-top:6px}
+.params div{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px dotted #e3d6ba;padding:4px 0;font-family:var(--mono);font-size:11.5px}
+.params .k{color:var(--ink-3);letter-spacing:.06em}
+.params .val{display:flex;gap:8px}
+.params .val i{font-style:normal;min-width:46px;text-align:right}
+.params .val i.pos{color:var(--cinnabar)}
+.params .val i.neg{color:#3d5c6b}
+
+/* 印章 */
+.stamp{
+  width:44px;height:44px;display:grid;place-items:center;flex:0 0 44px;
+  border:2px solid var(--seal);color:var(--seal);font-family:var(--kai);font-size:19px;
+  border-radius:3px;opacity:0;transform:rotate(-8deg) scale(.5);transition:.5s cubic-bezier(.2,1.5,.4,1);
+  pointer-events:none;
+}
+.stamp.on{opacity:.9;transform:rotate(-8deg) scale(1)}
+
+/* 代码对照 */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:0}
+.tabs button{
+  padding:11px 22px;font-family:var(--song);font-size:14px;letter-spacing:.1em;color:var(--ink-3);
+  border-bottom:2px solid transparent;margin-bottom:-1px;transition:.2s;
+}
+.tabs button.on{color:var(--cinnabar);border-bottom-color:var(--cinnabar)}
+.code-shell{position:relative;background:#fdf8ec;border:1px solid var(--line-soft);border-top:0}
+pre.code{
+  margin:0;padding:18px 20px 20px;overflow:auto;max-height:520px;
+  font-family:var(--mono);font-size:12.2px;line-height:1.85;color:#2b2620;
+  tab-size:2;white-space:pre;
+}
+pre.code .cm{color:#8a7f68;font-style:italic}
+pre.code .st{color:#9c3a2c}
+pre.code .kw{color:#5b4a86}
+pre.code .fn{color:#3d5c6b}
+pre.code .step{border-left:2px solid #c9b48c;margin-left:-20px;padding-left:18px;display:block;background:#f7eed9}
+pre.code .s1{border-left-color:#9c3a2c}
+pre.code .s2{border-left-color:#8b6a3c}
+pre.code .s3{border-left-color:#3d5c6b}
+pre.code .s4{border-left-color:#4c6b5c}
+pre.code .s5{border-left-color:#6b4c6b}
+.code-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 16px;border-top:1px solid var(--line-soft);background:#f6ecd6}
+.code-bar .fname{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink-3)}
+.code-bar .acts{display:flex;gap:8px}
+.code-bar a,.code-bar button{font-family:var(--hei);font-size:11.5px;letter-spacing:.08em;color:var(--ink-2);border:1px solid var(--line);padding:4px 10px;border-radius:2px;background:#fffdf5}
+.code-bar a:hover,.code-bar button:hover{border-color:var(--ink);color:var(--ink)}
+
+/* 步骤对照表 */
+.map{display:grid;grid-template-columns:52px 1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:20px;font-size:12.5px}
+.map > div{background:#fbf5e7;padding:11px 13px;font-family:var(--mono);font-size:11.5px;line-height:1.7}
+.map > div.hd{background:#f2e6cd;font-family:var(--hei);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+.map .stp{font-family:var(--kai);font-size:15px;color:var(--cinnabar);letter-spacing:.06em}
+
+/* 终端 */
+.term{background:#221f1a;border:1px solid #37312a;box-shadow:inset 0 0 60px #00000055}
+.term-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #3a342c}
+.term-bar i{width:8px;height:8px;border-radius:50%;background:#5c5348;display:block}
+.term-bar span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:#9d9484;margin-left:6px}
+.term pre{margin:0;padding:16px 18px 20px;font-family:var(--mono);font-size:11.6px;line-height:1.85;color:#e2d8c3;overflow:auto;max-height:420px}
+.term pre .dim{color:#8d8574}
+.term pre .ok{color:#a9c99a}
+.term pre .hl{color:#e0a48f}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.metric{border:1px solid var(--line);background:#fbf5e7;padding:16px 18px}
+.metric .k{font-family:var(--hei);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+.metric .v{font-family:var(--kai);font-size:26px;letter-spacing:.04em;color:var(--ink);margin-top:4px}
+.metric .d{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-4);margin-top:2px}
+
+@media(max-width:960px){
+  .grid-lab{grid-template-columns:1fr}
+  .facts{grid-template-columns:repeat(2,1fr)}
+  .two{grid-template-columns:1fr}
+  .map{grid-template-columns:40px 1fr 1fr;font-size:11px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <a class="brand" href="index.html">
+        <span class="seal-mark">徐</span>
+        <span class="brand-txt"><b>课业墨存</b><span>ARTIFICIAL INTELLIGENCE · 2026</span></span>
+      </a>
+      <nav class="nav">
+        <a href="index.html"><span class="num">〇</span>首页</a>
+        <a href="homework1.html"><span class="num">壹</span>作业一</a>
+        <a href="homework2.html" class="on"><span class="num">贰</span>作业二</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ============ 卷首 ============ -->
+  <section class="head wrap">
+    <span class="eyebrow">卷 贰 · 第二篇 第 15 节 · MLP 学习参数的实现与可视化</span>
+    <h1>以墨训智<br><span class="c">九参数参透异或</span></h1>
+    <p class="lede">
+      异或只有四个样本，却让单层感知机彻底失手——因为一条直线分不开「相异」与「相同」这两种组合。
+      加两个隐藏单元，网络就学会了把平面折起来。这一卷做的事：把这两句话，
+      用 PyTorch 与 TensorFlow 各写一遍，再把九个参数怎么一步步挪到位，摊在你面前。
+    </p>
+
+    <div class="facts">
+      <div><b>2—2—1</b><span>网络结构</span></div>
+      <div><b>9</b><span>可学参数</span></div>
+      <div><b>300</b><span>训练轮次</span></div>
+      <div><b>0.03</b><span>ADAM 学习率</span></div>
+    </div>
+
+    <div class="task">
+      <p>「第二次作业是第二篇 15 节 MLP 学习参数的实现和可视化，作业请完成并展示在自己的网站上。」</p>
+      <p style="font-family:var(--song);font-size:14.5px;color:var(--ink-3);line-height:1.9">
+        据此，本卷给出两件事：一是<b>能跑的实现</b>（讲义原样的 2—2—1 结构，PyTorch 与 TensorFlow 双版本，脚本可下载）；
+        二是<b>看得见的参数学习</b>——训练台由浏览器当场计算，可播放、可单步、可改初始权重，损失曲线与决策边界逐轮变化。
+      </p>
+      <div class="src">TASK FROM · 课程群通知　｜　REFERENCE · 朱梦尧《人工智能概论》第 15 节</div>
+    </div>
+
+    <div class="realm">
+      <a href="#realm1"><span class="n">第一境</span><span class="t">一线之界</span><span class="d">单层感知机为什么不行</span></a>
+      <a href="#realm2"><span class="n">第二境</span><span class="t">折地成界</span><span class="d">隐藏层把平面折起来</span></a>
+      <a href="#realm3"><span class="n">第三境</span><span class="t">观变</span><span class="d">九个参数怎样走到位</span></a>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- ============ 第一境 ============ -->
+  <section class="wrap sect" id="realm1">
+    <div class="chapter">
+      <span class="seal-no">一</span>
+      <div>
+        <h2>一线之界</h2>
+        <p class="sub">单层感知机的全部本领，是在平面上画一条直线。先亲手把这条线挪到无路可走。</p>
+      </div>
+    </div>
+
+    <p class="body-txt">
+      异或的四个样本摆在正方形的四个角：<em>(0,0) 与 (1,1) 该输出 0</em>，
+      <em>(0,1) 与 (1,0) 该输出 1</em>。同类点坐在对角，异类点互相挨着。
+      下面这条线由三个数决定——<code>w₁、w₂</code> 管方向，<code>b</code> 管平移。
+      你可以拖动滑块去找，也可以让机器替你穷举十万条。
+    </p>
+
+    <div class="lab" style="margin-top:26px">
+      <div class="lab-top">
+        <div class="ttl">单层感知机 · 划线实验<small>y = 1 若 w₁x₁ + w₂x₂ + b ≥ 0</small></div>
+        <div class="chips">
+          <div class="chip"><span>正确率</span><b id="p1acc">—</b></div>
+          <div class="chip"><span>分错</span><b id="p1wrong">—</b></div>
+        </div>
+      </div>
+      <div class="lab-body">
+        <div class="grid-lab" style="grid-template-columns:1.15fr 1fr;align-items:start">
+          <div class="cell">
+            <h4>输入平面 x₁–x₂ <em>实心＝输出 1　空心＝输出 0</em></h4>
+            <canvas id="c1" width="520" height="440"></canvas>
+          </div>
+          <div>
+            <div class="cell" style="margin-bottom:14px">
+              <h4>三个数决定一条线 <em>拖动试试</em></h4>
+              <div class="sl" style="margin-bottom:10px"><span style="width:26px">w₁</span><input id="w1" type="range" min="-4" max="4" step="0.05" value="1"><b id="w1v">1.00</b></div>
+              <div class="sl" style="margin-bottom:10px"><span style="width:26px">w₂</span><input id="w2" type="range" min="-4" max="4" step="0.05" value="1"><b id="w2v">1.00</b></div>
+              <div class="sl" style="margin-bottom:14px"><span style="width:26px">b</span><input id="bb" type="range" min="-3" max="3" step="0.05" value="-1.5"><b id="bbv">-1.50</b></div>
+              <div class="ctl" style="margin:0">
+                <button class="btn-sm" id="p1rand">换一条线</button>
+                <button class="btn-sm primary" id="p1search">穷举十万条</button>
+                <button class="btn-sm" id="p1reset">回到竖直</button>
+              </div>
+            </div>
+            <div class="note" id="p1verdict" style="font-size:16px">
+              先随便挪一挪，看看能不能让四个点全部对上。
+            </div>
+            <div class="cell" style="margin-top:16px">
+              <h4>读法 <em>一条线的全部自由度</em></h4>
+              <div class="tiny" style="line-height:1.95">
+                <b>w₁、w₂</b> 是这条线的法向量，决定它朝哪边斜；<br>
+                <b>b</b> 决定它离原点多远，正负号决定往哪一侧偏；<br>
+                <b>z ≥ 0</b> 判 1，<b>z &lt; 0</b> 判 0。<br>
+                三个数一起调，能画出平面上所有直线——也只有直线。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="tiny" style="margin-top:14px">
+      ＊ 穷举是对 (w₁, w₂, b) 做十万次随机采样后取最优——最好的结果也只有 <b>75%</b>，因为四个点对角分布，任何一条直线都必然切错一对。
+    </p>
+  </section>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- ============ 第二境 ============ -->
+  <section class="wrap sect" id="realm2">
+    <div class="chapter">
+      <span class="seal-no">二</span>
+      <div>
+        <h2>折地成界</h2>
+        <p class="sub">既然一条线不够，就让隐藏层先把输入组合成两个中间特征，再在中间特征上划线。</p>
+      </div>
+    </div>
+
+    <p class="body-txt">
+      讲义把异或写成 <code>(x₁ ∧ ¬x₂) ∨ (¬x₁ ∧ x₂)</code>：要么「有其一而无其二」，要么反过来。
+      于是给网络配两位门客——<br>
+      <b>甲</b>：只看 x₁ 有、x₂ 无，这类情况举手；<b>乙</b>：只看 x₂ 有、x₁ 无，那类情况举手。最后由输出层合议：<em>谁举手都算通过</em>。
+      数学上，这两句话就是两条平行的斜线，把平面切成三条带子；四个点被搬到 <code>h₁–h₂</code> 平面后，<em>一条直线就能分开</em>。
+      不过要留意：输出层的 <code>v、b₀</code> 初值把门槛设在 0.833，偏高了，所以一开始还差一个点判错——<em>把门槛挪到 0.6 附近才全对，这正是训练要做的事</em>。
+    </p>
+
+    <div class="lab" style="margin-top:26px">
+      <div class="lab-top">
+        <div class="ttl">隐藏层变换 · 折叠实验<small>把 x 平面的四个点搬到 h 平面</small></div>
+        <div class="chips">
+          <div class="chip"><span>折叠进度</span><b id="h2t">0%</b></div>
+        </div>
+      </div>
+      <div class="lab-body">
+        <p class="tiny" style="margin:0 0 14px">
+          <b style="color:#9c3a2c">朱色虚线</b>　h₁ 判「有 x₁ 而无 x₂」
+          　　<b style="color:#3d5c6b">青色虚线</b>　h₂ 判「有 x₂ 而无 x₁」——两线平行，把平面切成三条带子。
+        </p>
+        <div class="grid-lab">
+          <div class="cell">
+            <h4>原空间 x₁–x₂ <em>两条斜线＝两个隐藏单元的判据</em></h4>
+            <canvas id="c2a" width="480" height="440"></canvas>
+          </div>
+          <div class="cell">
+            <h4>隐藏空间 h₁–h₂ <em>一条直线即可分开</em></h4>
+            <canvas id="c2b" width="480" height="440"></canvas>
+          </div>
+        </div>
+        <div class="ctl" style="margin:16px 0 0">
+          <button class="btn-sm primary" id="h2play">▶ 折起来</button>
+          <button class="btn-sm" id="h2reset">还原</button>
+          <div class="sl" style="margin-left:6px"><span>折叠 t</span><input id="h2sl" type="range" min="0" max="100" step="1" value="0"><b id="h2tv">0.00</b></div>
+          <span class="mono" id="h2hint">h₁ = σ(2x₁ − 2x₂ − 1)　h₂ = σ(−2x₁ + 2x₂ − 1)</span>
+        </div>
+        <div class="grid4" style="margin-top:16px">
+          <div class="metric" style="padding:12px 14px"><div class="k">(0,0) → 0</div><div class="v" style="font-size:16px" id="h00">—</div></div>
+          <div class="metric" style="padding:12px 14px"><div class="k">(0,1) → 1</div><div class="v" style="font-size:16px" id="h01">—</div></div>
+          <div class="metric" style="padding:12px 14px"><div class="k">(1,0) → 1</div><div class="v" style="font-size:16px" id="h10">—</div></div>
+          <div class="metric" style="padding:12px 14px"><div class="k">(1,1) → 0</div><div class="v" style="font-size:16px" id="h11">—</div></div>
+        </div>
+      </div>
+    </div>
+    <p class="tiny" style="margin-top:14px">
+      ＊ 这里的权重取自讲义给出的初值：W = [[2,−2],[−2,2]]，b = [−1,−1]。也就是说，两个隐藏单元一开始就站在「对」的位置上，只是输出层的门槛偏高；训练要做的是把权重和门槛一起挪稳。
+    </p>
+  </section>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- ============ 第三境 ============ -->
+  <section class="wrap sect" id="realm3">
+    <div class="chapter">
+      <span class="seal-no">三</span>
+      <div>
+        <h2>观变</h2>
+        <p class="sub">完整的 2—2—1 网络、完整的训练循环。播放它，看损失往下走，看边界从乱涂到干净。</p>
+      </div>
+    </div>
+
+    <p class="body-txt">
+      下面这台不是录像。它用与两段 Python 代码<em>完全相同的数学</em>在浏览器里训练：
+      前向 <code>h = σ(xW + b)</code>、<code>z = hv + b₀</code>，二元交叉熵，Adam（lr = 0.03），每轮用全部四个样本。
+      你可以随时暂停、单步，或者换一组随机初值重来——那往往会停在 <em>75%</em> 不动，正是小网络的脾气。
+    </p>
+
+    <div class="lab" style="margin-top:26px">
+      <div class="lab-top">
+        <div class="ttl">2—2—1 实时训练台<small>浏览器内计算 · 无外部依赖</small></div>
+        <div class="chips">
+          <div class="chip"><span>Epoch</span><b id="mEp">0</b></div>
+          <div class="chip"><span>Loss</span><b id="mLoss">—</b></div>
+          <div class="chip"><span>正确</span><b id="mAcc">0/4</b></div>
+        </div>
+        <div class="stamp" id="stamp">通</div>
+      </div>
+      <div class="lab-body">
+        <div class="ctl">
+          <button class="btn-sm primary" id="mPlay">▶ 播放</button>
+          <button class="btn-sm" id="mStep">单步 +1</button>
+          <button class="btn-sm" id="mJump">+50 轮</button>
+          <button class="btn-sm" id="mReset">重置</button>
+          <button class="btn-sm" id="mRand">随机初值</button>
+          <div class="sl"><span>速度</span><input id="mSpeed" type="range" min="1" max="20" step="1" value="4"><b id="mSpeedV">4</b></div>
+          <div class="sl"><span>学习率</span><input id="mLr" type="range" min="0.005" max="0.2" step="0.005" value="0.03"><b id="mLrV">.030</b></div>
+        </div>
+
+        <div class="grid-lab">
+          <div class="cell">
+            <h4>网络与权重 <em>朱＝正权重　青＝负权重</em></h4>
+            <canvas id="cNet" width="520" height="330"></canvas>
+          </div>
+          <div class="cell">
+            <h4>决策边界 <em>朱＝判 1　青＝判 0　越浅越犹豫</em></h4>
+            <canvas id="cField" width="440" height="330"></canvas>
+          </div>
+          <div class="cell">
+            <h4>损失曲线 <em>逐轮 BCE</em></h4>
+            <canvas id="cLoss" width="520" height="260"></canvas>
+          </div>
+          <div class="cell">
+            <h4>四样本输出 <em>阈值 0.5</em></h4>
+            <div id="prows"></div>
+            <div class="params" id="ptable" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="tiny" style="margin-top:14px">
+      ＊ 四个样本全部判对时，训练台右上会盖一枚「通」印。点「随机初值」多试几次，你会看到它有时盖不上。
+      用同一套结构、学习率与轮数随机试了 <b>200 组初值</b>，只有 <b>88 组（44%）</b>在 300 轮内四个全对，
+      其余停在 3/4 或 2/4——这就是 XOR 的局部极小。讲义给的这组初值，事先把两个隐藏单元摆在了「几乎对」的位置上。
+    </p>
+  </section>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- ============ 代码 ============ -->
+  <section class="wrap sect" id="code">
+    <div class="chapter">
+      <span class="seal-no">四</span>
+      <div>
+        <h2>同一步，两种写法</h2>
+        <p class="sub">两段代码做的事一模一样，差别只在框架：一个靠 autograd 记梯度，一个靠 GradientTape 录运算。</p>
+      </div>
+    </div>
+
+    <div class="two" style="margin-bottom:26px">
+      <div class="metric">
+        <div class="k">PYTORCH 的五个动作</div>
+        <div class="d" style="font-family:var(--mono);font-size:11.5px;line-height:2;color:var(--ink-2);margin-top:8px">
+          torch.nn.Parameter · optimizer.zero_grad()<br>
+          loss.backward() · optimizer.step()
+        </div>
+      </div>
+      <div class="metric">
+        <div class="k">TENSORFLOW 的五个动作</div>
+        <div class="d" style="font-family:var(--mono);font-size:11.5px;line-height:2;color:var(--ink-2);margin-top:8px">
+          tf.Variable · tf.GradientTape()<br>
+          tape.gradient() · optimizer.apply_gradients()
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="on" data-tab="torch">PyTorch</button>
+      <button data-tab="tf">TensorFlow</button>
+    </div>
+
+    <div class="code-shell" id="paneTorch">
+      <pre class="code" id="codeTorch"></pre>
+      <div class="code-bar">
+        <span class="fname">code/xor_pytorch.py</span>
+        <div class="acts">
+          <button data-copy="torch">复制</button>
+          <a href="code/xor_pytorch.py" download>下载</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-shell" id="paneTf" style="display:none">
+      <pre class="code" id="codeTf"></pre>
+      <div class="code-bar">
+        <span class="fname">code/xor_tensorflow.py</span>
+        <div class="acts">
+          <button data-copy="tf">复制</button>
+          <a href="code/xor_tensorflow.py" download>下载</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="map">
+      <div class="hd">步</div><div class="hd">PyTorch</div><div class="hd">TensorFlow</div>
+      <div class="stp">①</div><div>torch.tensor(...)　浮点默认 float64</div><div>tf.constant(...)；set_floatx("float64")</div>
+      <div class="stp">②</div><div>nn.Parameter 包住 W / b / v / b₀</div><div>tf.Variable 包住 W / b / v / b₀</div>
+      <div class="stp">③</div><div>F.binary_cross_entropy_with_logits</div><div>tf.nn.sigmoid_cross_entropy_with_logits</div>
+      <div class="stp">④</div><div>loss.backward() 写入 .grad</div><div>tape.gradient(loss, 参数表)</div>
+      <div class="stp">⑤</div><div>optimizer.step()</div><div>optimizer.apply_gradients(zip(g, 参数))</div>
+    </div>
+    <p class="tiny" style="margin-top:14px">
+      ＊ 网页里的训练台用的是同一组公式的 JavaScript 实现，因此断网也能跑；Python 脚本原样放在 <code>code/</code> 目录，可直接下载运行复核。
+    </p>
+  </section>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- ============ 实跑 ============ -->
+  <section class="wrap sect" id="run">
+    <div class="chapter">
+      <span class="seal-no">五</span>
+      <div>
+        <h2>真跑记录</h2>
+        <p class="sub">不是网页推演：两个脚本在本机实际跑完 300 轮，下面是终端原话。</p>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="term">
+        <div class="term-bar"><i></i><i></i><i></i><span>python xor_pytorch.py</span></div>
+        <pre id="termTorch"><span class="dim">运行中，正在读取实跑结果…</span></pre>
+      </div>
+      <div class="term">
+        <div class="term-bar"><i></i><i></i><i></i><span>python xor_tensorflow.py</span></div>
+        <pre id="termTf"><span class="dim">运行中，正在读取实跑结果…</span></pre>
+      </div>
+    </div>
+
+    <div class="grid3" style="margin-top:20px">
+      <div class="metric"><div class="k">两版最终预测</div><div class="v" id="runPred">—</div><div class="d" id="runPredNote">正确答案 0 1 1 0</div></div>
+      <div class="metric"><div class="k">两版最终损失</div><div class="v" id="runLoss">—</div><div class="d">BCE · 300 轮之后</div></div>
+      <div class="metric"><div class="k">两版一致性</div><div class="v" id="runSame">—</div><div class="d">同一初值 · 同一优化器</div></div>
+    </div>
+
+    <p class="body-txt" style="margin-top:22px">
+      两段代码从同一个起点出发（W = [[2,−2],[−2,2]]、b = [−1,−1]、v = [3,3]、b₀ = −2.5），走同一条 Adam 路径。
+      300 轮之后，PyTorch 的损失是 <b>0.02806528</b>，TensorFlow 是 <b>0.02806622</b>；逐轮最大差 <b>6.6×10⁻⁶</b>（出现在第 49 轮），
+      四个样本的输出概率在六位小数上完全一致，预测同为 0 1 1 0。
+      这点差别来自两处：两个框架的 Adam 默认 <code>eps</code> 不同（1e-8 与 1e-7），以及浮点运算的先后次序不同。
+    </p>
+    <p class="body-txt" style="margin-top:14px">
+      而上面那台网页训练台，与这份 PyTorch 记录<em>逐轮完全相同</em>——300 轮的损失最大偏差 <b>0.0</b>。
+      因为它不是「模拟」：同一组公式、同样的双精度浮点，前向、反向与 Adam 都在浏览器里真算一遍。
+      这也说明一件事：<em>框架换的是写法，不是数学</em>；真正决定结果的是结构、初值、优化器与学习率这些更朴素的选择。
+    </p>
+  </section>
+
+  <div class="wrap"><div class="divider"><i></i></div></div>
+
+  <!-- ============ 结语 ============ -->
+  <section class="wrap sect">
+    <div class="chapter">
+      <span class="seal-no">六</span>
+      <div>
+        <h2>做完之后，留下三条</h2>
+        <p class="sub">不是结论，是这次动手换来的、下次能直接用的经验。</p>
+      </div>
+    </div>
+    <div class="grid3">
+      <div class="verdict" style="border:1px solid var(--line);background:#fbf5e7">
+        <span class="mark">其一</span>
+        <h4>隐藏层不是「多一层」，是换坐标系</h4>
+        <p>它把线性不可分的问题搬到另一个空间里，让那里存在一条能分开的直线。XOR 是两个半平面的「或」，这就是它的几何含义。</p>
+      </div>
+      <div class="verdict" style="border:1px solid var(--line);background:#fbf5e7">
+        <span class="mark">其二</span>
+        <h4>九个参数也够看一场完整的戏</h4>
+        <p>张量、前向、损失、求梯度、更新——五件事在 2—2—1 上全部出现，一步不少。网络再大，流程也是这五步的放大。</p>
+      </div>
+      <div class="verdict" style="border:1px solid var(--line);background:#fbf5e7">
+        <span class="mark">其三</span>
+        <h4>可视化不是装饰，是诊断</h4>
+        <p>损失曲线停住、边界再也不动，说明卡在平台或局部极小；换初值、调学习率，比盯着数字瞎猜有效得多。</p>
+      </div>
+    </div>
+
+    <div class="switcher" style="margin-top:52px">
+      <a href="homework1.html">
+        <span class="k">PREV · 卷壹</span>
+        <span class="t">四种 Agent，一张工作台</span>
+        <span class="arw">→ 回到 Agent 手记</span>
+      </a>
+      <a href="index.html">
+        <span class="k">INDEX</span>
+        <span class="t">回到首页</span>
+        <span class="arw">↑ 两卷索引</span>
+      </a>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <div><div class="sig">卷贰 · 以墨训智</div><small>MLP · XOR · PARAMETER LEARNING</small></div>
+      <div class="center muted tiny" style="max-width:32em">结构、初值与超参数均取自课程讲义第 15 节；<br>网页训练台为同一数学的浏览器复现，脚本见 <code>code/</code>。</div>
+      <div class="mono">徐子祺 / 2662404047</div>
+    </div>
+  </footer>
+</div>
+
+<script>
+/* =========================================================
+   0. 共用工具
+   ========================================================= */
+const C = {
+  ink:'#211e19', ink2:'#4a4235', ink3:'#8c8069', line:'#d2c0a0',
+  paper:'#fdf8ec', paper2:'#f3e7ce', cin:'#9c3a2c', jade:'#4c6b5c', blue:'#3d5c6b'
+};
+const sig = z => 1 / (1 + Math.exp(-z));
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const lerp = (a,b,t) => a + (b-a)*t;
+
+function setupCanvas(cv){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = cv.width, h = cv.height;
+  cv.width = w * dpr; cv.height = h * dpr;
+  cv.style.width = '100%'; cv.style.aspectRatio = w + ' / ' + h;
+  cv.style.height = 'auto';
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w, h };
+}
+
+/* =========================================================
+   1. 第一境：单层感知机划线
+   ========================================================= */
+(function realm1(){
+  const cv = document.getElementById('c1');
+  const { ctx, w, h } = setupCanvas(cv);
+  const PAD = 54, S = Math.min(w, h) - PAD * 2;
+  const X0 = (w - S) / 2, Y0 = (h - S) / 2 - 8;
+  const pts = [[0,0,0],[0,1,1],[1,0,1],[1,1,0]];
+  const px = (x1,x2) => [X0 + x1 * S, Y0 + (1 - x2) * S];
+
+  const w1s = document.getElementById('w1'), w2s = document.getElementById('w2'), bs = document.getElementById('bb');
+  const w1v = document.getElementById('w1v'), w2v = document.getElementById('w2v'), bbv = document.getElementById('bbv');
+  const accEl = document.getElementById('p1acc'), wrongEl = document.getElementById('p1wrong');
+  const verdict = document.getElementById('p1verdict');
+
+  function draw(){
+    const w1 = +w1s.value, w2 = +w2s.value, b = +bs.value;
+    w1v.textContent = w1.toFixed(2); w2v.textContent = w2.toFixed(2); bbv.textContent = b.toFixed(2);
+
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = C.paper; ctx.fillRect(0,0,w,h);
+
+    // 网格
+    ctx.strokeStyle = '#e6d8bb'; ctx.lineWidth = 1;
+    for(let i=0;i<=4;i++){
+      const p = i/4;
+      ctx.beginPath(); ctx.moveTo(X0+p*S, Y0); ctx.lineTo(X0+p*S, Y0+S); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(X0, Y0+p*S); ctx.lineTo(X0+S, Y0+p*S); ctx.stroke();
+    }
+    // 坐标
+    ctx.fillStyle = C.ink3; ctx.font = '11px DM Mono, monospace';
+    ctx.fillText('x₁', X0+S-6, h-18); ctx.fillText('x₂', 18, Y0+4);
+    ctx.fillText('0', X0-12, Y0+S+18); ctx.fillText('1', X0+S-4, Y0+S+18);
+    ctx.fillText('0', X0-18, Y0+S+4); ctx.fillText('1', X0-18, Y0-2);
+
+    // 判定区（背景着色）
+    // 用像素绘制太慢，这里用半透明裁剪近似：画整幅后叠加线
+    // 分类判定线
+    ctx.save();
+    ctx.beginPath(); ctx.rect(X0, Y0, S, S); ctx.clip();
+    let hits = 0;
+    const res = pts.map(([x1,x2,y]) => {
+      const z = w1*x1 + w2*x2 + b;
+      const pred = z >= 0 ? 1 : 0;
+      const ok = pred === y; if(ok) hits++;
+      return { x1, x2, y, pred, ok };
+    });
+
+    // 线的方向
+    if (Math.abs(w2) > 1e-6){
+      const yAt = x => -(w1*x + b)/w2;
+      const pA = px(-0.6, yAt(-0.6)), pB = px(1.6, yAt(1.6));
+      ctx.beginPath(); ctx.moveTo(...pA); ctx.lineTo(...pB);
+      ctx.strokeStyle = C.cin; ctx.lineWidth = 1.6; ctx.setLineDash([]); ctx.stroke();
+      // 阴影带
+      ctx.strokeStyle = '#9c3a2c22'; ctx.lineWidth = 14; ctx.stroke();
+    } else if (Math.abs(w1) > 1e-6){
+      const x = -b/w1;
+      const pA = px(x, -0.6), pB = px(x, 1.6);
+      ctx.beginPath(); ctx.moveTo(...pA); ctx.lineTo(...pB);
+      ctx.strokeStyle = C.cin; ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.strokeStyle = '#9c3a2c22'; ctx.lineWidth = 14; ctx.stroke();
+    }
+    ctx.restore();
+
+    // 点
+    res.forEach(r => {
+      const [X,Y] = px(r.x1, r.x2);
+      ctx.beginPath(); ctx.arc(X, Y, 13, 0, Math.PI*2);
+      if (r.y === 1){ ctx.fillStyle = C.cin; ctx.fill(); }
+      else { ctx.fillStyle = C.paper; ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; ctx.stroke(); }
+      // 预测标记
+      ctx.beginPath();
+      if (r.pred === 1){ ctx.arc(X, Y, 17, 0, Math.PI*2); ctx.strokeStyle = '#9c3a2c66'; ctx.lineWidth = 1; ctx.setLineDash([2,3]); ctx.stroke(); ctx.setLineDash([]); }
+      // 标签
+      ctx.fillStyle = r.y === 1 ? '#fdf3e2' : C.ink;
+      ctx.font = '12px DM Mono, monospace'; ctx.textAlign = 'center'; ctx.textBaseline='middle';
+      ctx.fillText(String(r.y), X, Y+0.5);
+      ctx.textAlign = 'start'; ctx.textBaseline='alphabetic';
+      // 错标
+      if (!r.ok){
+        ctx.beginPath(); ctx.arc(X, Y, 24, 0, Math.PI*2);
+        ctx.strokeStyle = '#9c3a2c'; ctx.lineWidth = 1.2; ctx.setLineDash([3,4]); ctx.stroke(); ctx.setLineDash([]);
+      }
+    });
+
+    const acc = Math.round(hits/4*100);
+    accEl.textContent = acc + '%';
+    accEl.className = hits === 4 ? 'ok' : 'bad';
+    wrongEl.textContent = (4-hits) + ' 个';
+    wrongEl.className = hits === 4 ? 'ok' : 'bad';
+
+    if (hits === 4){
+      verdict.innerHTML = '四个点全对。但请再想想：这条线是凭什么分对的？把 w₁ 或 w₂ 挪一点点，它就会崩——<em>这种「刚好」不是学习</em>。';
+    } else {
+      verdict.innerHTML = `还有 <b style="color:#9c3a2c">${4-hits}</b> 个点分错。无论怎么拖动，最多也只能对三个：因为异类的点夹在对角线上，<em>一条直线切不开两个对角</em>。`;
+    }
+  }
+
+  [w1s,w2s,bs].forEach(s => s.addEventListener('input', draw));
+
+  document.getElementById('p1rand').addEventListener('click', () => {
+    w1s.value = (Math.random()*6-3).toFixed(2);
+    w2s.value = (Math.random()*6-3).toFixed(2);
+    bs.value = (Math.random()*4-2).toFixed(2);
+    draw();
+  });
+  document.getElementById('p1reset').addEventListener('click', () => {
+    w1s.value = 1; w2s.value = 0; bs.value = -0.5; draw();
+  });
+  document.getElementById('p1search').addEventListener('click', () => {
+    let best = { acc: -1, w1: 1, w2: 1, b: -1 };
+    for (let i = 0; i < 100000; i++){
+      const w1 = Math.random()*8-4, w2 = Math.random()*8-4, b = Math.random()*6-3;
+      let hits = 0;
+      for (const [x1,x2,y] of pts){ if (((w1*x1+w2*x2+b) >= 0 ? 1 : 0) === y) hits++; }
+      if (hits > best.acc) best = { acc: hits, w1, w2, b };
+      if (hits === 4) break;
+    }
+    w1s.value = best.w1.toFixed(2); w2s.value = best.w2.toFixed(2); bs.value = best.b.toFixed(2);
+    draw();
+    if (best.acc === 4){
+      verdict.innerHTML = '<b style="color:#4c6b5c">居然全对了？</b> 严格来说，这四个点在 (0,1) 与 (1,0) 之间必有一对同侧——除非采样到了极端参数（把某个点推到判定边界上）。试试把线挪 0.05，再回来。';
+    } else {
+      verdict.innerHTML = '十万条线试过，最好只有 <b style="color:#9c3a2c">75%</b>。<em>这就是单层感知机的天花板</em>——不是参数没调好，是模型能力不够。';
+    }
+  });
+
+  draw();
+})();
+
+/* =========================================================
+   2. 第二境：隐藏层折叠
+   ========================================================= */
+(function realm2(){
+  const A = document.getElementById('c2a'), B = document.getElementById('c2b');
+  const oa = setupCanvas(A), ob = setupCanvas(B);
+  const pts = [[0,0,0],[0,1,1],[1,0,1],[1,1,0]];
+
+  const W = [[2,-2],[-2,2]], BH = [-1,-1], V = [3,3], BO = -2.5;
+  const hOf = (x1,x2) => [
+    sig(W[0][0]*x1 + W[1][0]*x2 + BH[0]),
+    sig(W[0][1]*x1 + W[1][1]*x2 + BH[1])
+  ];
+  const H = pts.map(([x1,x2]) => hOf(x1,x2));
+
+  document.getElementById('h00').textContent = `(${H[0][0].toFixed(3)}, ${H[0][1].toFixed(3)})`;
+  document.getElementById('h01').textContent = `(${H[1][0].toFixed(3)}, ${H[1][1].toFixed(3)})`;
+  document.getElementById('h10').textContent = `(${H[2][0].toFixed(3)}, ${H[2][1].toFixed(3)})`;
+  document.getElementById('h11').textContent = `(${H[3][0].toFixed(3)}, ${H[3][1].toFixed(3)})`;
+
+  function frame(o, pad){
+    const { ctx, w, h } = o;
+    ctx.clearRect(0,0,w,h); ctx.fillStyle = C.paper; ctx.fillRect(0,0,w,h);
+    o.S = Math.min(w,h) - pad*2;
+    o.x0 = (w - o.S) / 2;
+    o.y0 = (h - o.S) / 2;
+    return o;
+  }
+
+  function axis(o, xlab, ylab){
+    const {ctx,w,h} = o;
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.strokeRect(o.x0, o.y0, o.S, o.S);
+    ctx.fillStyle = C.ink3; ctx.font='11px DM Mono, monospace';
+    ctx.fillText(xlab, o.x0+o.S-10, h-12);
+    ctx.fillText(ylab, 10, o.y0+2);
+  }
+
+  function drawA(){
+    const o = oa, {ctx} = o;
+    frame(o, 48); axis(o,'x₁','x₂');
+    const P = (x1,x2) => [o.x0 + x1*o.S, o.y0 + (1-x2)*o.S];
+
+    // 两条隐藏单元判据线：2x1-2x2-1=0 → x2 = x1 - 0.5 ; -2x1+2x2-1=0 → x2 = x1 + 0.5
+    ctx.save(); ctx.beginPath(); ctx.rect(o.x0,o.y0,o.S,o.S); ctx.clip();
+    [[-0.5, C.cin, 'h₁'], [0.5, C.blue, 'h₂']].forEach(([c, col]) => {
+      ctx.beginPath();
+      ctx.moveTo(...P(-0.2, -0.2 + c)); ctx.lineTo(...P(1.2, 1.2 + c));
+      ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
+    });
+    ctx.restore();
+
+    pts.forEach(([x1,x2,y]) => {
+      const [X,Y] = P(x1,x2);
+      ctx.beginPath(); ctx.arc(X,Y,12,0,Math.PI*2);
+      if (y===1){ctx.fillStyle=C.cin;ctx.fill();} else {ctx.fillStyle=C.paper;ctx.fill();ctx.strokeStyle=C.ink;ctx.lineWidth=1.5;ctx.stroke();}
+      ctx.fillStyle = y===1 ? '#fdf3e2' : C.ink;
+      ctx.font='12px DM Mono, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(y),X,Y+0.5); ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+    });
+
+  }
+
+  let T = 0;
+  function drawB(){
+    const o = ob, {ctx,w,h} = o;
+    frame(o, 48); axis(o,'h₁','h₂');
+    const P = (a,b) => [o.x0 + a*o.S, o.y0 + (1-b)*o.S];
+
+    // 可分界：h1 + h2 = 0.6
+    ctx.save(); ctx.beginPath(); ctx.rect(o.x0,o.y0,o.S,o.S); ctx.clip();
+    ctx.globalAlpha = 0.15 + 0.85 * T;
+    ctx.beginPath(); ctx.moveTo(...P(-0.16, 0.76)); ctx.lineTo(...P(0.76, -0.16));
+    ctx.strokeStyle = C.cin; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = '#9c3a2c18'; ctx.lineWidth = 16; ctx.stroke();
+
+    // 网络当前门槛：3h₁ + 3h₂ − 2.5 = 0，即 h₁ + h₂ = 0.833
+    ctx.beginPath(); ctx.moveTo(...P(-0.1, 0.933)); ctx.lineTo(...P(0.933, -0.1));
+    ctx.strokeStyle = '#8c8069'; ctx.lineWidth = 1; ctx.setLineDash([5,4]); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    const labels = ['00','01','10','11'];
+    pts.forEach(([x1,x2,y], i) => {
+      const start = [x1, x2], end = H[i];
+      const a = lerp(start[0], end[0], T), b = lerp(start[1], end[1], T);
+      const [X, Y] = P(a, b);
+
+      // 轨迹
+      if (T > 0.02 && T < 0.98){
+        ctx.beginPath(); ctx.moveTo(...P(start[0],start[1])); ctx.lineTo(X,Y);
+        ctx.strokeStyle = '#9c3a2c55'; ctx.lineWidth = .9; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+      }
+      ctx.beginPath(); ctx.arc(X,Y,12,0,Math.PI*2);
+      if (y===1){ctx.fillStyle=C.cin;ctx.fill();} else {ctx.fillStyle=C.paper;ctx.fill();ctx.strokeStyle=C.ink;ctx.lineWidth=1.5;ctx.stroke();}
+      ctx.fillStyle = y===1 ? '#fdf3e2' : C.ink;
+      ctx.font='12px DM Mono, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(y),X,Y+0.5);
+      ctx.fillStyle = C.ink3; ctx.font='9px DM Mono, monospace';
+      ctx.fillText(labels[i], X+18, Y-12);
+      ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+    });
+
+    ctx.fillStyle = C.ink3; ctx.font = '10px DM Mono, monospace';
+    ctx.fillStyle = C.cin; ctx.font = '10px DM Mono, monospace';
+    ctx.fillText('h₁ + h₂ = 0.6　可分界', o.x0 + 8, h - 26);
+    ctx.fillStyle = C.ink3;
+    ctx.fillText('h₁ + h₂ = 0.833　网络当前门槛', o.x0 + 8, h - 12);
+  }
+
+  const sl = document.getElementById('h2sl'), tv = document.getElementById('h2tv'), tEl = document.getElementById('h2t');
+  function setT(v){
+    T = v/100; sl.value = v; tv.textContent = T.toFixed(2); tEl.textContent = Math.round(T*100) + '%';
+    drawB();
+  }
+  sl.addEventListener('input', e => setT(+e.target.value));
+
+  let raf = null;
+  document.getElementById('h2play').addEventListener('click', () => {
+    if (raf) return;
+    let v = 0;
+    const tick = () => {
+      v += 1.6; if (v >= 100){ v = 100; setT(v); raf = null; return; }
+      setT(v); raf = requestAnimationFrame(tick);
+    };
+    tick();
+  });
+  document.getElementById('h2reset').addEventListener('click', () => { if(raf){cancelAnimationFrame(raf); raf=null;} setT(0); });
+
+  drawA(); drawB();
+})();
+
+/* =========================================================
+   3. 第三境：实时训练台（2—2—1 · BCE · Adam）
+   ========================================================= */
+(function realm3(){
+  const X = [[0,0],[0,1],[1,0],[1,1]];
+  const Y = [0,1,1,0];
+  const LR_DEF = 0.03, EPOCHS = 300;
+
+  const INIT_LECTURE = () => ({ W:[[2,-2],[-2,2]], bh:[-1,-1], v:[3,3], bo:-2.5 });
+  const INIT_RANDOM  = () => {
+    const r = () => +(Math.random()*5-2.5).toFixed(3);
+    return { W:[[r(),r()],[r(),r()]], bh:[r(),r()], v:[r(),r()], bo:r() };
+  };
+
+  let M, adam, hist, epoch, lr = LR_DEF, running = false, raf = null, speed = 4;
+
+  function reset(mode){
+    M = mode === 'random' ? INIT_RANDOM() : INIT_LECTURE();
+    adam = { m:{W:[[0,0],[0,0]], bh:[0,0], v:[0,0], bo:0}, v:{W:[[0,0],[0,0]], bh:[0,0], v:[0,0], bo:0}, t:0 };
+    hist = []; epoch = 0; running = false;
+    document.getElementById('stamp').classList.remove('on');
+    renderAll();
+  }
+
+  function forward(){
+    const out = [];
+    for (let i = 0; i < 4; i++){
+      const [x1,x2] = X[i];
+      const h = [
+        sig(M.W[0][0]*x1 + M.W[1][0]*x2 + M.bh[0]),
+        sig(M.W[0][1]*x1 + M.W[1][1]*x2 + M.bh[1])
+      ];
+      const z = h[0]*M.v[0] + h[1]*M.v[1] + M.bo;
+      out.push({ h, z, p: sig(z) });
+    }
+    return out;
+  }
+
+  function lossOf(out){
+    let s = 0;
+    for (let i = 0; i < 4; i++){
+      const z = out[i].z, y = Y[i];
+      s += Math.max(z,0) - z*y + Math.log(1 + Math.exp(-Math.abs(z)));
+    }
+    return s / 4;
+  }
+
+  function engineStep(){
+    const out = forward();
+    const loss = lossOf(out);
+    const g = { W:[[0,0],[0,0]], bh:[0,0], v:[0,0], bo:0 };
+    for (let i = 0; i < 4; i++){
+      const [x1,x2] = X[i];
+      const { h, p } = out[i];
+      const dz = (p - Y[i]) / 4;
+      g.v[0] += dz * h[0]; g.v[1] += dz * h[1]; g.bo += dz;
+      for (let j = 0; j < 2; j++){
+        const dzh = dz * M.v[j] * h[j] * (1 - h[j]);
+        g.W[0][j] += dzh * x1; g.W[1][j] += dzh * x2; g.bh[j] += dzh;
+      }
+    }
+    const b1 = 0.9, b2 = 0.999, eps = 1e-8;
+    adam.t++;
+    const bc1 = 1 - Math.pow(b1, adam.t), bc2 = 1 - Math.pow(b2, adam.t);
+    const U = (p, gg, m, v) => {
+      m[0] = b1*m[0] + (1-b1)*gg;
+      v[0] = b2*v[0] + (1-b2)*gg*gg;
+      return p - lr * (m[0]/bc1) / (Math.sqrt(v[0]/bc2) + eps);
+    };
+    for (let a=0;a<2;a++) for (let b=0;b<2;b++){
+      const mm = [adam.m.W[a][b]], vv = [adam.v.W[a][b]];
+      M.W[a][b] = U(M.W[a][b], g.W[a][b], mm, vv);
+      adam.m.W[a][b] = mm[0]; adam.v.W[a][b] = vv[0];
+    }
+    for (let j=0;j<2;j++){
+      let mm = [adam.m.bh[j]], vv = [adam.v.bh[j]];
+      M.bh[j] = U(M.bh[j], g.bh[j], mm, vv); adam.m.bh[j]=mm[0]; adam.v.bh[j]=vv[0];
+      mm = [adam.m.v[j]]; vv = [adam.v.v[j]];
+      M.v[j] = U(M.v[j], g.v[j], mm, vv); adam.m.v[j]=mm[0]; adam.v.v[j]=vv[0];
+    }
+    let mmb = [adam.m.bo], vvb = [adam.v.bo];
+    M.bo = U(M.bo, g.bo, mmb, vvb); adam.m.bo = mmb[0]; adam.v.bo = vvb[0];
+
+    epoch++;
+    hist.push(loss);
+    return loss;
+  }
+
+  /* ---------- 画布 ---------- */
+  const cvNet = setupCanvas(document.getElementById('cNet'));
+  const cvField = setupCanvas(document.getElementById('cField'));
+  const cvLoss = setupCanvas(document.getElementById('cLoss'));
+
+  function drawNet(){
+    const { ctx, w, h } = cvNet;
+    ctx.clearRect(0,0,w,h); ctx.fillStyle = '#fffdf6'; ctx.fillRect(0,0,w,h);
+    const out = forward();
+    const LX = [90, 250, 410], LY = { in:[95, 235], hid:[118, 212], out:[165] };
+
+    // 连线：输入→隐藏
+    for (let a=0;a<2;a++) for (let j=0;j<2;j++){
+      const wv = M.W[a][j], mag = Math.min(Math.abs(wv)/5, 1);
+      ctx.beginPath();
+      ctx.moveTo(LX[0]+22, LY.in[a]); ctx.lineTo(LX[1]-22, LY.hid[j]);
+      ctx.strokeStyle = wv >= 0 ? `rgba(156,58,44,${0.12+mag*0.8})` : `rgba(61,92,107,${0.12+mag*0.8})`;
+      ctx.lineWidth = 0.7 + mag*4.2; ctx.stroke();
+    }
+    // 隐藏→输出
+    for (let j=0;j<2;j++){
+      const wv = M.v[j], mag = Math.min(Math.abs(wv)/5, 1);
+      ctx.beginPath();
+      ctx.moveTo(LX[1]+22, LY.hid[j]); ctx.lineTo(LX[2]-22, LY.out[0]);
+      ctx.strokeStyle = wv >= 0 ? `rgba(156,58,44,${0.12+mag*0.8})` : `rgba(61,92,107,${0.12+mag*0.8})`;
+      ctx.lineWidth = 0.7 + mag*4.2; ctx.stroke();
+    }
+
+    // 节点
+    const node = (x,y,fill,label,sub) => {
+      ctx.beginPath(); ctx.arc(x,y,21,0,Math.PI*2);
+      ctx.fillStyle = fill; ctx.fill();
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 1.1; ctx.stroke();
+      ctx.fillStyle = fill === '#fffdf6' ? C.ink : '#fdf3e2';
+      ctx.font = '12px DM Mono, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(label, x, y);
+      if (sub){
+        ctx.fillStyle = C.ink3; ctx.font='10px DM Mono, monospace';
+        ctx.fillText(sub, x, y+34);
+      }
+      ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+    };
+    // 输入（显示当前样本之一 0,1）
+    node(LX[0], LY.in[0], '#fffdf6', 'x₁', '');
+    node(LX[0], LY.in[1], '#fffdf6', 'x₂', '');
+    node(LX[1], LY.hid[0], '#f6e7c8', 'h₁', out[0].h[0].toFixed(2));
+    node(LX[1], LY.hid[1], '#f6e7c8', 'h₂', out[0].h[1].toFixed(2));
+    const p = out[0].p;
+    node(LX[2], LY.out[0], p > .5 ? '#e8c9bd' : '#e6dfc9', 'ŷ', p.toFixed(2));
+
+    // 标注
+    ctx.fillStyle = C.ink3; ctx.font='10px Noto Sans SC, sans-serif';
+    ctx.fillText('输入', LX[0]-16, 40);
+    ctx.fillText('隐藏（sigmoid）', LX[1]-52, 40);
+    ctx.fillText('输出', LX[2]-14, 40);
+    ctx.fillText('显示样本 (0,0) 的前向结果', 24, h-16);
+  }
+
+  const FIELD_N = 84;
+  const fieldBuf = document.createElement('canvas');
+  fieldBuf.width = FIELD_N; fieldBuf.height = FIELD_N;
+
+  function drawField(){
+    const { ctx, w, h } = cvField;
+    const PADL = 34, PADB = 30, PADT = 10, PADR = 10;
+    const size = Math.min(w - PADL - PADR, h - PADT - PADB);
+    const x0 = PADL, y0 = PADT;
+
+    ctx.clearRect(0,0,w,h); ctx.fillStyle = '#fffdf6'; ctx.fillRect(0,0,w,h);
+
+    // 概率场
+    const g = fieldBuf.getContext('2d');
+    const img = g.createImageData(FIELD_N, FIELD_N);
+    for (let iy=0; iy<FIELD_N; iy++){
+      for (let ix=0; ix<FIELD_N; ix++){
+        const x1 = ix/(FIELD_N-1), x2 = 1 - iy/(FIELD_N-1);
+        const hh0 = sig(M.W[0][0]*x1 + M.W[1][0]*x2 + M.bh[0]);
+        const hh1 = sig(M.W[0][1]*x1 + M.W[1][1]*x2 + M.bh[1]);
+        const p = sig(hh0*M.v[0] + hh1*M.v[1] + M.bo);
+        // 判 1 → 朱，判 0 → 青灰；越靠近 0.5 越接近纸色
+        const conf = Math.pow(Math.abs(p - 0.5) * 2, .8);
+        const to = p >= 0.5 ? [156, 58, 44] : [74, 91, 88];
+        const o = (iy*FIELD_N + ix) * 4;
+        img.data[o]   = lerp(247, to[0], conf);
+        img.data[o+1] = lerp(239, to[1], conf);
+        img.data[o+2] = lerp(219, to[2], conf);
+        img.data[o+3] = 255;
+      }
+    }
+    g.putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(fieldBuf, x0, y0, size, size);
+
+    // 边框与坐标
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, size, size);
+    ctx.fillStyle = C.ink3; ctx.font = '10px DM Mono, monospace';
+    ctx.fillText('x₁', x0+size-12, y0+size+18);
+    ctx.fillText('x₂', x0-26, y0+10);
+    ctx.fillText('0', x0-10, y0+size+14); ctx.fillText('1', x0+size-4, y0+size+14);
+
+    // 样本点
+    const out = forward();
+    X.forEach(([x1,x2], i) => {
+      const px = x0 + x1*size, py = y0 + (1-x2)*size;
+      const correct = (out[i].p >= .5 ? 1 : 0) === Y[i];
+      ctx.beginPath(); ctx.arc(px, py, 9, 0, Math.PI*2);
+      ctx.fillStyle = Y[i] === 1 ? '#f6e5d6' : '#fdf8ec'; ctx.fill();
+      ctx.strokeStyle = correct ? C.ink : '#fff'; ctx.lineWidth = 1.6; ctx.stroke();
+      if (!correct){
+        ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI*2);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.4; ctx.stroke();
+      }
+      ctx.fillStyle = C.ink; ctx.font = '10px DM Mono, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(Y[i]), px, py+0.5); ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+    });
+  }
+
+  let realCurves = null;   // 真实框架跑出来的曲线
+  function drawLoss(){
+    const { ctx, w, h } = cvLoss;
+    const L = 46, R = 16, T = 14, B = 30;
+    ctx.clearRect(0,0,w,h); ctx.fillStyle = '#fffdf6'; ctx.fillRect(0,0,w,h);
+    const W = w-L-R, H = h-T-B;
+
+    // 网格
+    ctx.strokeStyle = '#efe3c9'; ctx.lineWidth = 1;
+    for (let i=0;i<=4;i++){
+      const y = T + H*i/4;
+      ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(L+W,y); ctx.stroke();
+    }
+    const maxE = EPOCHS, yMax = 1.0;
+    ctx.strokeStyle = C.line; ctx.strokeRect(L,T,W,H);
+    ctx.fillStyle = C.ink3; ctx.font='10px DM Mono, monospace';
+    ctx.fillText('1.0', 10, T+4); ctx.fillText('0', 16, T+H+4);
+    ctx.fillText('0', L-4, h-10); ctx.fillText(String(maxE), L+W-22, h-10);
+
+    const px = e => L + (e/maxE)*W, py = l => T + H - Math.min(l,yMax)/yMax*H;
+
+    // 真跑曲线（若已载入）
+    if (realCurves && realCurves.length){
+      realCurves.forEach((curve, k) => {
+        ctx.beginPath();
+        curve.forEach((l, i) => { const X = px(i+1), Y = py(l); i ? ctx.lineTo(X,Y) : ctx.moveTo(X,Y); });
+        ctx.strokeStyle = k === 0 ? '#4c6b5c66' : '#3d5c6b66';
+        ctx.lineWidth = 1.2; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+      });
+      ctx.fillStyle = '#4c6b5c'; ctx.font='9.5px DM Mono, monospace';
+      ctx.fillText('— — 真跑：PyTorch / TensorFlow', L+8, T+12);
+    }
+
+    // 当前曲线
+    if (hist.length){
+      ctx.beginPath();
+      hist.forEach((l, i) => { const X = px(i+1), Y = py(l); i ? ctx.lineTo(X,Y) : ctx.moveTo(X,Y); });
+      ctx.strokeStyle = C.cin; ctx.lineWidth = 1.8; ctx.stroke();
+      // 末端点
+      const lastX = px(hist.length), lastY = py(hist[hist.length-1]);
+      ctx.beginPath(); ctx.arc(lastX, lastY, 3.2, 0, Math.PI*2); ctx.fillStyle = C.cin; ctx.fill();
+      ctx.fillStyle = C.ink2; ctx.font='10px DM Mono, monospace';
+      ctx.fillText(hist[hist.length-1].toFixed(4), Math.min(lastX+6, L+W-46), Math.max(lastY-6, T+10));
+    }
+  }
+
+  function drawProws(){
+    const out = forward();
+    const host = document.getElementById('prows');
+    const qs = ['(0,0)','(0,1)','(1,0)','(1,1)'];
+    host.innerHTML = out.map((r,i) => {
+      const pred = r.p >= .5 ? 1 : 0, ok = pred === Y[i];
+      return `<div class="prow">
+        <span class="q">${qs[i]}</span>
+        <span class="bar"><i style="width:${(r.p*100).toFixed(1)}%"></i></span>
+        <span class="v">${r.p.toFixed(3)}</span>
+        <span class="${ok?'ok':'no'}">${ok?'✓':'✗'}</span>
+      </div>`;
+    }).join('');
+
+    const fmt = x => x.toFixed(2);
+    const cls = x => x >= 0 ? 'pos' : 'neg';
+    document.getElementById('ptable').innerHTML = `
+      <div><span class="k">隐藏层权重　W（2×2）</span><span class="val">
+        <i class="${cls(M.W[0][0])}">${fmt(M.W[0][0])}</i><i class="${cls(M.W[1][0])}">${fmt(M.W[1][0])}</i>
+        <i class="${cls(M.W[0][1])}">${fmt(M.W[0][1])}</i><i class="${cls(M.W[1][1])}">${fmt(M.W[1][1])}</i></span></div>
+      <div><span class="k">隐藏层偏置　b</span><span class="val"><i class="${cls(M.bh[0])}">${fmt(M.bh[0])}</i><i class="${cls(M.bh[1])}">${fmt(M.bh[1])}</i></span></div>
+      <div><span class="k">输出层权重　v</span><span class="val"><i class="${cls(M.v[0])}">${fmt(M.v[0])}</i><i class="${cls(M.v[1])}">${fmt(M.v[1])}</i></span></div>
+      <div><span class="k">输出层偏置　b₀</span><span class="val"><i class="${cls(M.bo)}">${fmt(M.bo)}</i></span></div>`;
+  }
+
+  function renderAll(){
+    const out = forward();
+    const loss = hist.length ? hist[hist.length-1] : lossOf(out);
+    let acc = 0; out.forEach((r,i) => { if ((r.p >= .5 ? 1 : 0) === Y[i]) acc++; });
+    document.getElementById('mEp').textContent = epoch;
+    document.getElementById('mLoss').textContent = loss.toFixed(4);
+    const accEl = document.getElementById('mAcc');
+    accEl.textContent = acc + '/4';
+    accEl.className = acc === 4 ? 'ok' : 'bad';
+    if (acc === 4) document.getElementById('stamp').classList.add('on');
+    drawNet(); drawField(); drawLoss(); drawProws();
+  }
+
+  /* ---------- 控制 ---------- */
+  const playBtn = document.getElementById('mPlay');
+  function loop(){
+    if (!running) return;
+    for (let k = 0; k < speed && epoch < EPOCHS; k++) engineStep();
+    renderAll();
+    if (epoch >= EPOCHS){ running = false; playBtn.textContent = '▶ 播放'; return; }
+    raf = requestAnimationFrame(loop);
+  }
+  function togglePlay(){
+    if (running){ running = false; cancelAnimationFrame(raf); playBtn.textContent = '▶ 播放'; return; }
+    if (epoch >= EPOCHS) reset();
+    running = true; playBtn.textContent = '❚❚ 暂停'; loop();
+  }
+  playBtn.addEventListener('click', togglePlay);
+  document.getElementById('mStep').addEventListener('click', () => { if (epoch < EPOCHS) engineStep(); renderAll(); });
+  document.getElementById('mJump').addEventListener('click', () => {
+    for (let k = 0; k < 50 && epoch < EPOCHS; k++) engineStep(); renderAll();
+  });
+  document.getElementById('mReset').addEventListener('click', () => { reset(); });
+  document.getElementById('mRand').addEventListener('click', () => { reset('random'); });
+  document.getElementById('mSpeed').addEventListener('input', e => {
+    speed = +e.target.value; document.getElementById('mSpeedV').textContent = speed;
+  });
+  document.getElementById('mLr').addEventListener('input', e => {
+    lr = +e.target.value; document.getElementById('mLrV').textContent = lr.toFixed(3).replace('0.','.');
+  });
+
+  /* ---------- 载入真实运行数据 ---------- */
+  function loadReal(){
+    const files = ['data/run_pytorch.json', 'data/run_tensorflow.json'];
+    Promise.all(files.map(f => fetch(f).then(r => r.ok ? r.json() : null).catch(() => null)))
+      .then(([pt, tf]) => {
+        if (!pt && !tf) return;
+        realCurves = [pt, tf].filter(Boolean).map(d => d.loss);
+        renderAll();
+        renderTerms(pt, tf);
+        renderRunStats(pt, tf);
+      });
+  }
+
+  function termText(d){
+    if (!d) return '<span class="dim">未找到运行记录</span>';
+    const L = d.loss;
+    const lines = [];
+    lines.push(`<span class="dim"># ${d.framework} ${d.version} · float64 · Adam lr=0.03 · 300 epochs</span>`);
+    const marks = [1,2,5,10,50,100,200,300];
+    marks.forEach(m => {
+      if (m <= L.length) lines.push(`epoch ${String(m).padStart(3)}  loss ${L[m-1].toFixed(6)}`);
+    });
+    lines.push('');
+    lines.push(`<span class="ok">四个样本的输出概率： [${d.final_probs.map(x => x.toFixed(4)).join(', ')}]</span>`);
+    lines.push(`<span class="ok">阈值 0.5 后的预测：   [${d.final_pred.join(', ')}]</span>`);
+    lines.push(`正确答案：             [0, 1, 1, 0]`);
+    lines.push(`最终损失：             ${L[L.length-1].toFixed(8)}`);
+    return lines.join('\n');
+  }
+
+  function renderTerms(pt, tf){
+    document.getElementById('termTorch').innerHTML = termText(pt);
+    document.getElementById('termTf').innerHTML = termText(tf);
+  }
+
+  function renderRunStats(pt, tf){
+    const P = pt && pt.final_pred, T = tf && tf.final_pred;
+    document.getElementById('runPred').textContent = P && T
+      ? (P.join(' ') === '0 1 1 0' && T.join(' ') === '0 1 1 0' ? '全对 0 1 1 0' : `${P.join('')} / ${T.join('')}`)
+      : '—';
+    const lp = pt ? pt.loss[pt.loss.length-1] : null;
+    const lt = tf ? tf.loss[tf.loss.length-1] : null;
+    document.getElementById('runLoss').textContent = (lp != null && lt != null)
+      ? `${lp.toFixed(4)} / ${lt.toFixed(4)}` : '—';
+    const md = (pt && tf) ? Math.max(...pt.loss.map((v,i) => Math.abs(v - tf.loss[i]))) : null;
+    const same = document.getElementById('runSame');
+    same.textContent = md != null ? `预测一致 · 逐轮差 ${md.toExponential(1)}` : '—';
+    same.style.color = '#4c6b5c';
+    same.style.fontSize = md != null ? '19px' : '';
+  }
+
+  reset();
+  loadReal();
+})();
+
+/* =========================================================
+   4. 代码面板
+   ========================================================= */
+(function codePanel(){
+  const TORCH = `import torch
+import torch.nn.functional as F
+torch.set_default_dtype(torch.float64)
+
+# ① 张量：x 有4行样本、每行2个输入 x₁、x₂
+x = torch.tensor([[0.,0.],[0.,1.],[1.,0.],[1.,1.]])
+# target 每行1个正确答案：00→0，01→1，10→1，11→0
+target = torch.tensor([[0.],[1.],[1.],[0.]])
+
+# ② 模型参数：Parameter 表示这些数可由训练更新
+W = torch.nn.Parameter(torch.tensor([[2.,-2.],[-2.,2.]]))
+b_hidden = torch.nn.Parameter(torch.tensor([-1.,-1.]))
+v = torch.nn.Parameter(torch.tensor([[3.],[3.]]))
+b_output = torch.nn.Parameter(torch.tensor([-2.5]))
+parameters = [W, b_hidden, v, b_output]
+optimizer = torch.optim.Adam(parameters, lr=0.03)
+
+for epoch in range(1, 301):
+    optimizer.zero_grad(set_to_none=True)          # 清旧梯度
+    hidden = torch.sigmoid(x @ W + b_hidden)       # 2个隐藏值
+    logits = hidden @ v + b_output                 # 1个原始输出分数
+    # ③ 损失：比较原始分数 logits 与正确答案 target
+    loss = F.binary_cross_entropy_with_logits(logits, target)
+    # ④ 自动求梯度：把各参数的梯度写入 .grad
+    loss.backward()
+    # ⑤ 更新参数：Adam 读取梯度并改变参数
+    optimizer.step()
+
+with torch.no_grad():
+    hidden = torch.sigmoid(x @ W + b_hidden)
+    prob = torch.sigmoid(hidden @ v + b_output)    # 0～1概率
+    print((prob >= 0.5).int().flatten().tolist())`;
+
+  const TF = `import tensorflow as tf
+tf.keras.backend.set_floatx("float64")
+
+# ① 张量：x 有4行样本、每行2个输入 x₁、x₂
+x = tf.constant([[0.,0.],[0.,1.],[1.,0.],[1.,1.]])
+# target 每行1个正确答案：00→0，01→1，10→1，11→0
+target = tf.constant([[0.],[1.],[1.],[0.]])
+
+# ② 模型参数：W、v 是连接权重；b 是偏置
+W = tf.Variable([[2.,-2.],[-2.,2.]])   # 2输入→2隐藏
+b_hidden = tf.Variable([-1.,-1.])
+v = tf.Variable([[3.],[3.]])           # 2隐藏→1输出
+b_output = tf.Variable([-2.5])
+parameters = [W, b_hidden, v, b_output]
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.03)
+
+for epoch in range(1, 301):
+    with tf.GradientTape() as tape:
+        hidden = tf.sigmoid(tf.matmul(x, W) + b_hidden)   # 2个隐藏值
+        logits = tf.matmul(hidden, v) + b_output          # 1个原始输出分数
+        # ③ 损失：比较原始分数 logits 与正确答案 target
+        loss = tf.reduce_mean(
+            tf.nn.sigmoid_cross_entropy_with_logits(labels=target, logits=logits))
+    # ④ 自动求梯度：每个参数稍变会怎样影响损失？
+    gradients = tape.gradient(loss, parameters)
+    # ⑤ 更新参数：Adam 按梯度改变 W、b、v
+    optimizer.apply_gradients(zip(gradients, parameters))
+
+hidden = tf.sigmoid(tf.matmul(x, W) + b_hidden)
+prob = tf.sigmoid(tf.matmul(hidden, v) + b_output)        # 0～1概率
+print(tf.cast(prob >= 0.5, tf.int32).numpy().ravel())`;
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function paint(src){
+    return src.split('\n').map(line => {
+      let cls = '';
+      if (/^#\s*[①②③④⑤]/.test(line)) {
+        const n = line.match(/[①②③④⑤]/)[0];
+        cls = 'step s' + ('①②③④⑤'.indexOf(n)+1);
+      }
+      let t = esc(line);
+      if (cls) return `<span class="${cls}">${t}</span>`;
+      // 注释染色
+      t = t.replace(/(#.*)$/, '<span class="cm">$1</span>');
+      t = t.replace(/\b(import|as|for|in|with|def|return|print)\b/g, '<span class="kw">$1</span>');
+      return t;
+    }).join('\n');
+  }
+
+  document.getElementById('codeTorch').innerHTML = paint(TORCH);
+  document.getElementById('codeTf').innerHTML = paint(TF);
+
+  document.querySelectorAll('.tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      const t = btn.dataset.tab;
+      document.getElementById('paneTorch').style.display = t === 'torch' ? '' : 'none';
+      document.getElementById('paneTf').style.display = t === 'tf' ? '' : 'none';
+    });
+  });
+
+  document.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const src = btn.dataset.copy === 'torch' ? TORCH : TF;
+      try {
+        await navigator.clipboard.writeText(src);
+        const old = btn.textContent; btn.textContent = '已复制';
+        setTimeout(() => btn.textContent = old, 1400);
+      } catch(e){ btn.textContent = '复制失败'; }
+    });
+  });
+})();
+
+/* 键盘翻卷 */
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,textarea')) return;
+  if (e.key === 'ArrowLeft') location.href = 'homework1.html';
+  if (e.key === 'ArrowRight') location.href = 'index.html';
+});
+</script>
+</body>
+</html>
