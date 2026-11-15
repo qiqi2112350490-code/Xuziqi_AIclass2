@@ -1028,12 +1028,14 @@ function setupCanvas(cv){
     // 概率场
     const g = fieldBuf.getContext('2d');
     const img = g.createImageData(FIELD_N, FIELD_N);
+    const P = new Float32Array(FIELD_N * FIELD_N);
     for (let iy=0; iy<FIELD_N; iy++){
       for (let ix=0; ix<FIELD_N; ix++){
         const x1 = ix/(FIELD_N-1), x2 = 1 - iy/(FIELD_N-1);
         const hh0 = sig(M.W[0][0]*x1 + M.W[1][0]*x2 + M.bh[0]);
         const hh1 = sig(M.W[0][1]*x1 + M.W[1][1]*x2 + M.bh[1]);
         const p = sig(hh0*M.v[0] + hh1*M.v[1] + M.bo);
+        P[iy*FIELD_N + ix] = p;
         // 判 1 → 朱，判 0 → 青灰；越靠近 0.5 越接近纸色
         const conf = Math.pow(Math.abs(p - 0.5) * 2, .8);
         const to = p >= 0.5 ? [156, 58, 44] : [74, 91, 88];
@@ -1047,6 +1049,35 @@ function setupCanvas(cv){
     g.putImageData(img, 0, 0);
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(fieldBuf, x0, y0, size, size);
+
+    // 0.5 等高线（marching squares）
+    const cell = size / (FIELD_N - 1);
+    const At = (ix, iy) => P[iy*FIELD_N + ix];
+    ctx.strokeStyle = 'rgba(33,30,25,.72)';
+    ctx.lineWidth = 1.7;
+    ctx.beginPath();
+    for (let iy=0; iy<FIELD_N-1; iy++){
+      for (let ix=0; ix<FIELD_N-1; ix++){
+        const v00 = At(ix,iy), v10 = At(ix+1,iy), v11 = At(ix+1,iy+1), v01 = At(ix,iy+1);
+        const pts = [];
+        const cross = (a,b) => (a - 0.5) * (b - 0.5) < 0;
+        const lerpT = (a,b) => (0.5 - a) / (b - a);
+        if (cross(v00,v10)) pts.push([ix + lerpT(v00,v10), iy]);
+        if (cross(v10,v11)) pts.push([ix+1, iy + lerpT(v10,v11)]);
+        if (cross(v01,v11)) pts.push([ix + lerpT(v01,v11), iy+1]);
+        if (cross(v00,v01)) pts.push([ix, iy + lerpT(v00,v01)]);
+        if (pts.length === 2){
+          ctx.moveTo(x0 + pts[0][0]*cell, y0 + pts[0][1]*cell);
+          ctx.lineTo(x0 + pts[1][0]*cell, y0 + pts[1][1]*cell);
+        } else if (pts.length === 4){
+          ctx.moveTo(x0 + pts[0][0]*cell, y0 + pts[0][1]*cell);
+          ctx.lineTo(x0 + pts[1][0]*cell, y0 + pts[1][1]*cell);
+          ctx.moveTo(x0 + pts[2][0]*cell, y0 + pts[2][1]*cell);
+          ctx.lineTo(x0 + pts[3][0]*cell, y0 + pts[3][1]*cell);
+        }
+      }
+    }
+    ctx.stroke();
 
     // 边框与坐标
     ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.strokeRect(x0, y0, size, size);
